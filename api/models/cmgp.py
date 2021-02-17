@@ -15,18 +15,21 @@ from sklearn.neighbors import KNeighborsRegressor
 
 
 class CMGP:
-    # TODO update this
     """
-    An implementation of various Gaussian models for Causal inference building on GPy.
+    An implementation of the CMGP model
+    outlined in https://arxiv.org/pdf/1704.02801.pdf
+    building on GPy.
     """
     def __init__(self, dim: int = 1, kern='RBF', mkern='ICM'):
         """
-        Class constructor. 
-        Initialize a GP object for causal inference. 
-    
-        :dim: the dimension of the input. Default is 1
-        :kern: 'RBF' or 'Matern'. Default is the Radial Basis Kernel
-        :mkern: For multitask models, can select from IMC and LMC models, default is IMC  
+        Initialise CMGP
+
+        :param dim: the dimension of the input. Default is 1
+        :type dim: int
+        :param kern: 'RBF' or 'Matern'. Default is the Radial Basis Kernel
+        :type kern: str
+        :param mkern: For multitask models, can select from IMC and LMC models, default is IMC  
+        :type mkern: str
         """
         self.kern_list = ['RBF', 'Matern']
         self.mkern_list = ['ICM', 'LCM']
@@ -97,14 +100,17 @@ class CMGP:
 
         self.initialize_hyperparameters(X, Y, W)
 
-    def fit(self, X, Y, W):
+    def fit(self, X: np.ndarray, Y: np.ndarray, W: np.ndarray) -> None:
         """
         Optimizes the model hyperparameters using the factual samples for the treated and control arms.
         X has to be an N x dim matrix. 
         
-        :X: The input covariates (the features)
-        :Y: The corresponding outcomes
-        :W: The treatment assignments
+        :param X: The input covariates (the features)
+        :type X: np.ndarray
+        :param Y: The corresponding outcomes
+        :type Y: np.ndarray
+        :param W: The treatment assignments
+        :type W: np.ndarray
         """
         self._build_model(X, Y, W)
         try:
@@ -114,12 +120,16 @@ class CMGP:
             print("Covariance matrix not invertible.")
             raise e
 
-    def predict(self, X):
+    def predict(self, X: np.ndarray) -> np.ndarray:
         """
         Infers the treatment effect for a certain set of input covariates. 
         Returns the predicted ITE.
         
-        :X: The input covariates at which the outcomes need to be predicted
+        :param X: The input covariates (the features)
+        :type X: np.ndarray
+
+        :return TE_est: The predicted outcome of the input covariates
+        :rtype TE_est: np.ndarray
         """
         if self.dim == 1:
             X_ = X[:, None]
@@ -160,18 +170,18 @@ class CMGP:
 
         TE_est = Y_est_1 - Y_est_0
 
-        return TE_est, Y_est_0, Y_est_1
+        return TE_est
 
     def initialize_hyperparameters(self, X, Y, W):
         """
         Initializes the multi-tasking model's hyper-parameters before passing to the optimizer
         
         :param X: The input covariates
-        :type X:
+        :type X: np.ndarray
         :param Y: The corresponding outcomes
-        :type Y:
+        :type Y: np.ndarray
         :param T: The treatment assignments
-        :type T:
+        :type T: np.ndarray
         """
         # -----------------------------------------------------------------------------------
         # Output Parameters:
@@ -223,3 +233,21 @@ class CMGP:
 
         self.model.mixed_noise.Gaussian_noise_0.variance = s0**2
         self.model.mixed_noise.Gaussian_noise_1.variance = s1**2
+
+    def test(self, X: np.ndarray, T: np.ndarray, metric) -> np.ndarray:
+        """
+        test method for CMGP
+
+        :param X: The input covariates (the features)
+        :type X: np.ndarray
+        :param T: The true treatment assignments
+        :type T: np.ndarray
+        :param metric: error metric to calculate
+        :param metric: py function
+
+        :return result: Outcome of metric evaluates on X and T
+        :rtype: np.ndarray
+        """
+        est_T = self.predict(X)
+        result = metric(T, est_T)
+        return result

@@ -21,3 +21,9 @@ sdist/
 var/
 wheels/
 share/python-wheels/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# VSCode
+.vscode
