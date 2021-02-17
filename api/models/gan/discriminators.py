@@ -51,12 +51,12 @@ class CounterfactualDiscriminator(TreatmentNetwork):
 
         return self.d_logit
 
-    def calculate_loss(self, t):
+    def set_loss(self, t):
         self._loss = tf.reduce_mean(
             tf.nn.sigmoid_cross_entropy_with_logits(labels=t,
                                                     logits=self.d_logit))
 
-    def create_solver(self):
+    def set_solver(self):
         if tf.is_tensor(self.loss):
             self._solver = tf.train.AdamOptimizer().minimize(self.loss,
                                                              var_list=list(

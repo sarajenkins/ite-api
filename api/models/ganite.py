@@ -14,7 +14,7 @@ from .gan.generators import CounterfactualGenerator, ITEGenerator
 
 
 class GANITE:
-    def __init__(self, alpha, mini_batch_size, num_iterations, num_kk, h_dim):
+    def __init__(self, num_kk, num_iterations, alpha, mini_batch_size, h_dim):
         self.alpha = alpha
         self.mini_batch_size = mini_batch_size
         self.num_iterations = num_iterations
@@ -50,14 +50,13 @@ class GANITE:
         self.d.objective(self.X, self.T, self.Y, self.y_tilde)
         self.y_carot = self.i.objective(self.X)
 
-        self.d.calculate_loss(self.T)
-        self.g.calculate_loss(self.d.loss, self.Y, self.T, self.y_tilde,
-                              self.alpha)
-        self.i.calculate_loss(self.T, self.Y, self.y_tilde, self.y_carot)
+        self.d.set_loss(self.T)
+        self.g.set_loss(self.d.loss, self.Y, self.T, self.y_tilde, self.alpha)
+        self.i.set_loss(self.T, self.Y, self.y_tilde, self.y_carot)
 
-        self.g.create_solver()
-        self.d.create_solver()
-        self.i.create_solver()
+        self.g.set_solver()
+        self.d.set_solver()
+        self.i.set_solver()
 
     def counterfactual_block(self, X, T, Y):
         for it in tqdm(range(self.num_iterations)):
@@ -111,7 +110,7 @@ class GANITE:
         return result
 
     def test(self, X, Y, metric):
-        loss = metric(self.Y_T, self.y_carot)
+        loss = metric(self.Y_T, self.y_carot, use_tf=True)
 
         loss_output, _ = self.sess.run([loss, self.y_carot],
                                        feed_dict={
